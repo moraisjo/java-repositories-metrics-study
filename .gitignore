@@ -34,7 +34,6 @@ htmlcov/
 *.swo
 
 # Dados coletados (não versionar CSVs e JSONs)
-data/*.csv
 data/*.json
 
 # macOS
