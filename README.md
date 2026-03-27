@@ -89,15 +89,24 @@ pip install -r requirements.txt
 
 O script utiliza requisição HTTP direta para acessar a API GraphQL do GitHub. Configure seu token de uma das seguintes formas:
 
-**Opção 1: Variável de ambiente**
+**Opção 1: Arquivo .env (Recomendado)**
 ```bash
-export GITHUB_TOKEN=seu_token_aqui_ghp_xxxxxxxxxxxxxxxxx
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite o arquivo .env e adicione seu token
+# GITHUB_TOKEN=ghp_seu_token_aqui
 ```
 
-**Opção 2: Arquivo ~/.bashrc**
+**Opção 2: Variável de ambiente**
+```bash
+export GITHUB_TOKEN=ghp_seu_token_aqui
+```
+
+**Opção 3: Arquivo ~/.bashrc**
 Adicione a seguinte linha ao seu arquivo `~/.bashrc`:
 ```bash
-export GITHUB_TOKEN=seu_token_aqui_ghp_xxxxxxxxxxxxxxxxx
+export GITHUB_TOKEN=ghp_seu_token_aqui
 ```
 
 **Como obter um token:**
@@ -105,6 +114,8 @@ export GITHUB_TOKEN=seu_token_aqui_ghp_xxxxxxxxxxxxxxxxx
 2. Clique em "Generate new token (classic)"
 3. Selecione o escopo `public_repo`
 4. Copie o token gerado
+
+> **⚠️ IMPORTANTE:** Nunca versione o arquivo `.env` com seu token real. O arquivo `.env` já está no `.gitignore`.
 
 ---
 
@@ -115,22 +126,54 @@ export GITHUB_TOKEN=seu_token_aqui_ghp_xxxxxxxxxxxxxxxxx
 Execute o script pipeline para coletar dados dos repositórios:
 
 ```bash
+# Coletar 1000 repositórios (padrão)
 python src/pipeline.py
+
+# Especificar quantidade de repositórios
+python src/pipeline.py --limit 500
+
+# Especificar arquivo de saída
+python src/pipeline.py --output data/my_repos.csv
+
+# Forçar re-coleta mesmo se o arquivo já existir
+python src/pipeline.py --force
 ```
+
+**Opções disponíveis:**
+- `--limit N`: Número de repositórios a coletar (padrão: 1000)
+- `--output FILE`: Arquivo CSV de saída (padrão: data/repositories.csv)
+- `--force`: Forçar re-coleta mesmo se já existir arquivo com dados suficientes
 
 O script irá:
-- Coletar dados dos 1000 repositórios Java com mais estrelas
-- Salvar os resultados em formato JSON no stdout
+- Coletar dados dos N repositórios Java com mais estrelas
+- Salvar os resultados em formato CSV no caminho especificado
+- Pular a coleta se o arquivo já existir com dados suficientes (use `--force` para ignorar)
 
-Para salvar em arquivo:
-
-```bash
-python src/pipeline.py > data/repos.json
-```
+**Dados coletados:**
+- `nameWithOwner`: Nome completo do repositório (owner/repo)
+- `url`: URL do repositório
+- `createdAt`: Data de criação
+- `updatedAt`: Data da última atualização
+- `stargazerCount`: Número de estrelas
+- `forkCount`: Número de forks
+- `watchersCount`: Número de watchers
+- `releasesCount`: Número de releases
+- `mergedPullRequestsCount`: Número de pull requests aceitos
+- `closedIssuesCount`: Número de issues fechadas
+- `totalIssuesCount`: Número total de issues
+- `primaryLanguage`: Linguagem principal
 
 ### 2. Análise com CK Tool
 
-*(A ser implementado)*
+A ferramenta CK está disponível em `source-code-ck/ck/`. Para utilizá-la:
+
+```bash
+# Clonar e analisar um repositório específico
+cd source-code-ck/ck/
+java -jar target/ck-*.jar /path/to/java/project true 0 false /output/path/
+```
+
+*(Integração automatizada em desenvolvimento)*
 
 ### 3. Geração de Visualizações
 
@@ -142,37 +185,75 @@ python src/pipeline.py > data/repos.json
 
 ```
 .
+├── .env.example                  # Exemplo de configuração de variáveis de ambiente
+├── .gitignore                    # Arquivos ignorados pelo Git
 ├── requirements.txt              # Dependências Python
 ├── README.md                     # Este arquivo
 ├── data/                         # Dados brutos coletados
-│   └── repos.json               # Dados do GitHub (JSON)
+│   └── repositories.csv         # Dados do GitHub (CSV)
 ├── docs/                         # Documentação do projeto
 │   └── LABORATÓRIO 02...pdf     # Especificação do laboratório
 ├── reports/                      # Relatórios e visualizações
-│   └── figures/                 # Gráficos gerados
+│   └── figures/                 # Gráficos gerados (a ser criado)
 ├── source-code-ck/              # Ferramenta CK
-└── src/
-    └── pipeline.py              # Script de coleta de repositórios
+│   └── ck/                      # Repositório da ferramenta CK
+└── src/                         # Código-fonte
+    ├── pipeline.py              # Script de coleta de repositórios
+    └── github_query.graphql     # Query GraphQL para busca de repositórios
 ```
 
 ---
 
 ## Troubleshooting
 
-### Erro: `GITHUB_TOKEN não encontradas`
-- Configure a variável de ambiente: `export GITHUB_TOKEN=seu_token`
-- Ou adicione ao `~/.bashrc`: `export GITHUB_TOKEN=seu_token`
-- Reinicie o terminal ou execute `source ~/.bashrc` após editar
+### Erro: `GITHUB_TOKEN não encontrado`
+**Problema:** O script não consegue encontrar o token de autenticação do GitHub.
+
+**Soluções:**
+1. Crie um arquivo `.env` na raiz do projeto: `cp .env.example .env`
+2. Adicione seu token ao arquivo `.env`: `GITHUB_TOKEN=ghp_seu_token_aqui`
+3. Ou configure a variável de ambiente: `export GITHUB_TOKEN=ghp_seu_token_aqui`
+4. Se usar `~/.bashrc`, reinicie o terminal ou execute `source ~/.bashrc`
 
 ### Erro: `401 Unauthorized` ou `403 Forbidden`
-- Seu token expirou ou é inválido
+**Problema:** Token inválido, expirado ou sem permissões adequadas.
+
+**Soluções:**
 - Verifique se o token tem o escopo `public_repo`
 - Gere um novo token em [github.com/settings/tokens](https://github.com/settings/tokens)
+- Certifique-se de que o token não expirou
+- Verifique se copiou o token completo (inicia com `ghp_`)
 
 ### Erro: `RuntimeError` ao buscar repositórios
-- Verifique sua conexão com a internet
-- Confirme que o token está configurado corretamente
-- Verifique se você não excedeu o rate limit da API do GitHub
+**Problema:** Erro de comunicação com a API do GitHub.
+
+**Possíveis causas e soluções:**
+- **Sem conexão com internet:** Verifique sua conexão
+- **Token inválido:** Confirme que o token está configurado corretamente
+- **Rate limit excedido:** Aguarde 1 hora ou use outro token
+  - Verifique seu rate limit em: https://api.github.com/rate_limit
+- **API temporariamente indisponível:** Aguarde e tente novamente
+
+### Erro: `ModuleNotFoundError`
+**Problema:** Dependências Python não instaladas.
+
+**Solução:**
+```bash
+# Certifique-se de que o ambiente virtual está ativado
+source .venv/bin/activate  # Linux/macOS
+# ou
+.venv\Scripts\activate     # Windows
+
+# Instale as dependências
+pip install -r requirements.txt
+```
+
+### Erro: `FileNotFoundError: Query file not found`
+**Problema:** Arquivo `github_query.graphql` não encontrado.
+
+**Solução:**
+- Certifique-se de que está executando o script a partir da raiz do projeto
+- Verifique se o arquivo `src/github_query.graphql` existe
 
 ---
 

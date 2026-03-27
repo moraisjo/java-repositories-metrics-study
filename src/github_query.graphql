@@ -1,0 +1,36 @@
+query($first: Int!, $cursor: String, $queryString: String!) {
+  search(query: $queryString, type: REPOSITORY, first: $first, after: $cursor) {
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    nodes {
+      ... on Repository {
+        nameWithOwner
+        url
+        createdAt
+        updatedAt
+        stargazerCount
+        forkCount
+        watchers {
+          totalCount
+        }
+        releases(first: 1) {
+          totalCount
+        }
+        pullRequests(states: MERGED) {
+          totalCount
+        }
+        closedIssues: issues(states: CLOSED) {
+          totalCount
+        }
+        totalIssues: issues {
+          totalCount
+        }
+        primaryLanguage {
+          name
+        }
+      }
+    }
+  }
+}
