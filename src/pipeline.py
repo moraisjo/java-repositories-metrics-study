@@ -106,6 +106,7 @@ def export_to_csv(repositories: list, output_file: Path):
             'url',
             'createdAt',
             'updatedAt',
+            'age',
             'stargazerCount',
             'forkCount',
             'watchersCount',
