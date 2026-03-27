@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated outputs
+clones/
+results/
+
+# CK build artifacts
+source-code-ck/ck/target/
