@@ -70,9 +70,12 @@ Este laboratório tem como objetivo analisar características de qualidade de re
 ### Instalação
 
 ```bash
-# 1. Clone o repositório
-git clone <url-do-repositório>
+# 1. Clone o repositório com submodules
+git clone --recurse-submodules <url-do-repositório>
 cd <nome-do-repositório>
+
+# Ou, se já clonou sem submodules:
+git submodule update --init --recursive
 
 # 2. Crie e ative um ambiente virtual
 python -m venv .venv
@@ -83,6 +86,11 @@ source .venv/bin/activate
 
 # 3. Instale as dependências
 pip install -r requirements.txt
+
+# 4. Build da ferramenta CK (necessário para análise de métricas)
+cd source-code-ck/ck
+./mvnw clean package -DskipTests
+cd ../..
 ```
 
 ### Configuração do Token GitHub
@@ -123,20 +131,20 @@ export GITHUB_TOKEN=ghp_seu_token_aqui
 
 ### 1. Coleta de Dados do GitHub
 
-Execute o script pipeline para coletar dados dos repositórios:
+Execute o script `01-fetch-github-data.py` para coletar dados dos repositórios:
 
 ```bash
 # Coletar 1000 repositórios (padrão)
-python src/pipeline.py
+python src/01-fetch-github-data.py
 
 # Especificar quantidade de repositórios
-python src/pipeline.py --limit 500
+python src/01-fetch-github-data.py --limit 500
 
 # Especificar arquivo de saída
-python src/pipeline.py --output data/my_repos.csv
+python src/01-fetch-github-data.py --output data/my_repos.csv
 
 # Forçar re-coleta mesmo se o arquivo já existir
-python src/pipeline.py --force
+python src/01-fetch-github-data.py --force
 ```
 
 **Opções disponíveis:**
@@ -165,15 +173,63 @@ O script irá:
 
 ### 2. Análise com CK Tool
 
-A ferramenta CK está disponível em `source-code-ck/ck/`. Para utilizá-la:
+Execute o script `02-generate-ck-metrics.py` para analisar as métricas de qualidade dos repositórios:
 
 ```bash
-# Clonar e analisar um repositório específico
-cd source-code-ck/ck/
-java -jar target/ck-*.jar /path/to/java/project true 0 false /output/path/
+# Analisar todos os repositórios pendentes (3 em paralelo por padrão)
+python src/02-generate-ck-metrics.py
+
+# Analisar apenas os primeiros N repositórios
+python src/02-generate-ck-metrics.py --limit 10
+
+# Especificar número de repositórios em paralelo
+python src/02-generate-ck-metrics.py --parallel 5
+
+# Usar HTTPS ao invés de SSH para clonar repositórios
+python src/02-generate-ck-metrics.py --use-http
+
+# Forçar re-análise de repositórios já processados
+python src/02-generate-ck-metrics.py --force
+
+# Especificar arquivo CSV de entrada diferente
+python src/02-generate-ck-metrics.py --input data/my_repos.csv
 ```
 
-*(Integração automatizada em desenvolvimento)*
+**Opções disponíveis:**
+- `--input FILE`: Arquivo CSV com repositórios (padrão: data/repositories.csv)
+- `--limit N`: Número de repositórios a analisar por execução
+- `--parallel N`: Número de análises paralelas (padrão: 3)
+- `--use-http`: Usar HTTPS para clonar (padrão: SSH)
+- `--force`: Re-analisar repositórios já processados
+
+O script irá:
+- Ler o CSV gerado pelo script anterior
+- Adicionar a coluna `ckMetricsGenerated` (se não existir)
+- Processar repositórios em paralelo (3 por vez, ou conforme especificado)
+- Clonar cada repositório usando SSH (ou HTTPS com `--use-http`)
+- Executar análise CK em cada repositório
+- Exportar métricas para `data/ck/{repoName}/ckMetrics.csv`
+- Marcar como concluído no CSV original
+- Limpar repositórios clonados após análise
+
+**Requisitos:**
+- SSH configurado com GitHub (ou use `--use-http`)
+- Java 11+ instalado
+- Ferramenta CK compilada (veja seção de instalação)
+
+**Formato dos dados gerados:**
+
+As métricas CK são salvas em `data/ck/{owner}_{repo}/ckMetrics.csv` com as seguintes colunas:
+- `file`: Caminho do arquivo analisado
+- `class`: Nome da classe
+- `type`: Tipo (class, interface, enum, etc.)
+- `cbo`: Coupling Between Objects
+- `dit`: Depth of Inheritance Tree
+- `wmc`: Weighted Methods per Class
+- `rfc`: Response for a Class
+- `lcom`: Lack of Cohesion of Methods
+- `loc`: Lines of Code
+- E outras métricas...
 
 ### 3. Geração de Visualizações
 
@@ -185,21 +241,27 @@ java -jar target/ck-*.jar /path/to/java/project true 0 false /output/path/
 
 ```
 .
-├── .env.example                  # Exemplo de configuração de variáveis de ambiente
-├── .gitignore                    # Arquivos ignorados pelo Git
-├── requirements.txt              # Dependências Python
-├── README.md                     # Este arquivo
-├── data/                         # Dados brutos coletados
-│   └── repositories.csv         # Dados do GitHub (CSV)
-├── docs/                         # Documentação do projeto
-│   └── LABORATÓRIO 02...pdf     # Especificação do laboratório
-├── reports/                      # Relatórios e visualizações
-│   └── figures/                 # Gráficos gerados (a ser criado)
-├── source-code-ck/              # Ferramenta CK
-│   └── ck/                      # Repositório da ferramenta CK
-└── src/                         # Código-fonte
-    ├── pipeline.py              # Script de coleta de repositórios
-    └── github_query.graphql     # Query GraphQL para busca de repositórios
+├── .env.example                      # Exemplo de configuração de variáveis de ambiente
+├── .gitignore                        # Arquivos ignorados pelo Git
+├── .gitmodules                       # Configuração de submodules Git
+├── requirements.txt                  # Dependências Python
+├── README.md                         # Este arquivo
+├── data/                             # Dados brutos coletados
+│   ├── repositories.csv              # Dados do GitHub (CSV)
+│   └── ck/                           # Métricas CK por repositório
+│       └── {owner}_{repo}/           # Diretório por repositório
+│           └── ckMetrics.csv         # Métricas CK do repositório
+├── docs/                             # Documentação do projeto
+│   └── LABORATÓRIO 02...pdf          # Especificação do laboratório
+├── reports/                          # Relatórios e visualizações
+│   └── figures/                      # Gráficos gerados (a ser criado)
+├── source-code-ck/                   # Ferramenta CK (submodule)
+│   └── ck/                           # Repositório da ferramenta CK
+│       └── target/                   # JAR compilado da ferramenta
+└── src/                              # Código-fonte
+    ├── 01-fetch-github-data.py       # Script de coleta de repositórios
+    ├── 02-generate-ck-metrics.py     # Script de análise de métricas CK
+    └── github_query.graphql          # Query GraphQL para busca de repositórios
 ```
 
 ---
@@ -254,6 +316,38 @@ pip install -r requirements.txt
 **Solução:**
 - Certifique-se de que está executando o script a partir da raiz do projeto
 - Verifique se o arquivo `src/github_query.graphql` existe
+
+### Erro: `CK tool not found` ou `Failed to build CK tool`
+**Problema:** Ferramenta CK não está disponível ou não foi compilada.
+
+**Soluções:**
+1. Certifique-se de ter inicializado o submodule:
+   ```bash
+   git submodule update --init --recursive
+   ```
+2. Compile a ferramenta CK manualmente:
+   ```bash
+   cd source-code-ck/ck
+   ./mvnw clean package -DskipTests
+   cd ../..
+   ```
+3. Verifique se Java 11+ está instalado: `java -version`
+4. Verifique se Maven está instalado (ou use o wrapper incluído: `./mvnw`)
+
+### Erro: Falha ao clonar repositório (SSH)
+**Problema:** Falha ao clonar repositório usando SSH.
+
+**Soluções:**
+1. Verifique se sua chave SSH está configurada no GitHub:
+   - [Guia de configuração de SSH](https://docs.github.com/pt/authentication/connecting-to-github-with-ssh)
+2. Use HTTPS ao invés de SSH:
+   ```bash
+   python src/02-generate-ck-metrics.py --use-http
+   ```
+3. Teste sua conexão SSH:
+   ```bash
+   ssh -T git@github.com
+   ```
 
 ---
 
