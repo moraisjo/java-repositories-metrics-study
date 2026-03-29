@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 DEFAULT_INPUT_CSV = "data/repositories.csv"
-DEFAULT_PARALLEL_JOBS = 3
+DEFAULT_PARALLEL_JOBS = 10
 DEFAULT_CK_JAR_PATH = "source-code-ck/ck/target/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar"
 TEMP_CLONE_DIR = "/tmp/ck-analysis"
 
@@ -107,7 +107,7 @@ def clone_repository(repo_url: str, clone_dir: Path, use_http: bool = False) -> 
             check=True,
             capture_output=True,
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=600  # 10 minute timeout
         )
         return True
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
