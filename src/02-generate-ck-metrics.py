@@ -143,7 +143,7 @@ def run_ck_analysis(ck_jar: Path, repo_dir: Path, output_dir: Path) -> bool:
             check=True,
             capture_output=True,
             text=True,
-            timeout=600  # 10 minute timeout
+            timeout=1200  # 20 minute timeout
         )
         
         # Check if metrics file was generated
