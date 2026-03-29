@@ -21,8 +21,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 DEFAULT_INPUT_CSV = "data/repositories.csv"
-DEFAULT_PARALLEL_JOBS = 10
+DEFAULT_PARALLEL_JOBS = 3
 DEFAULT_CK_JAR_PATH = "source-code-ck/ck/target/ck-0.7.1-SNAPSHOT-jar-with-dependencies.jar"
+DEFAULT_JVM_MEMORY = "2g"
+DEFAULT_MAX_FILES_PER_PARTITION = 500
 TEMP_CLONE_DIR = "/tmp/ck-analysis"
 
 
@@ -107,7 +109,7 @@ def clone_repository(repo_url: str, clone_dir: Path, use_http: bool = False) -> 
             check=True,
             capture_output=True,
             text=True,
-            timeout=600  # 10 minute timeout
+            timeout=900  # 15 minute timeout
         )
         return True
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
@@ -115,7 +117,13 @@ def clone_repository(repo_url: str, clone_dir: Path, use_http: bool = False) -> 
         return False
 
 
-def run_ck_analysis(ck_jar: Path, repo_dir: Path, output_dir: Path) -> bool:
+def run_ck_analysis(
+    ck_jar: Path,
+    repo_dir: Path,
+    output_dir: Path,
+    jvm_memory: str = DEFAULT_JVM_MEMORY,
+    max_files_per_partition: int = DEFAULT_MAX_FILES_PER_PARTITION,
+) -> bool:
     """
     Run CK metrics analysis on a repository.
     
@@ -123,6 +131,8 @@ def run_ck_analysis(ck_jar: Path, repo_dir: Path, output_dir: Path) -> bool:
         ck_jar: Path to CK JAR file
         repo_dir: Path to cloned repository
         output_dir: Directory to save metrics CSV
+        jvm_memory: JVM max heap size (e.g. '2g')
+        max_files_per_partition: CK partition size to avoid OOM on large repos
     
     Returns:
         True if successful, False otherwise
@@ -131,14 +141,17 @@ def run_ck_analysis(ck_jar: Path, repo_dir: Path, output_dir: Path) -> bool:
     
     try:
         # CK usage: java -jar ck.jar <project-dir> <use-jars> <max-files-per-partition> <use-variables-name> <output-dir>
-        subprocess.run(
+        result = subprocess.run(
             [
-                "java", "-jar", str(ck_jar),
-                str(repo_dir),  # project directory
-                "true",         # use jars
-                "0",            # max files per partition (0 = no limit)
-                "false",        # use variables name
-                str(output_dir) # output directory
+                "java",
+                f"-Xmx{jvm_memory}",
+                "-Xms512m",
+                "-jar", str(ck_jar),
+                str(repo_dir),                    # project directory
+                "true",                           # use jars
+                str(max_files_per_partition),     # max files per partition
+                "false",                          # use variables name
+                str(output_dir),                  # output directory
             ],
             check=True,
             capture_output=True,
@@ -154,10 +167,19 @@ def run_ck_analysis(ck_jar: Path, repo_dir: Path, output_dir: Path) -> bool:
             return True
         else:
             print(f"CK metrics file not generated for {repo_dir.name}", file=sys.stderr)
+            if result.stderr:
+                print(f"CK stderr:\n{result.stderr[:1000]}", file=sys.stderr)
             return False
             
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-        print(f"Failed to run CK analysis on {repo_dir.name}: {e}", file=sys.stderr)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to run CK analysis on {repo_dir.name}: exit {e.returncode}", file=sys.stderr)
+        if e.stderr:
+            lines = e.stderr.strip().splitlines()
+            preview = "\n".join(lines[:30])
+            print(f"CK stderr (first 30 lines):\n{preview}", file=sys.stderr)
+        return False
+    except subprocess.TimeoutExpired as e:
+        print(f"Failed to run CK analysis on {repo_dir.name}: timed out after {e.timeout}s", file=sys.stderr)
         return False
 
 
@@ -166,7 +188,9 @@ def process_repository(
     ck_jar: Path,
     use_http: bool,
     temp_dir: Path,
-    data_dir: Path
+    data_dir: Path,
+    jvm_memory: str = DEFAULT_JVM_MEMORY,
+    max_files_per_partition: int = DEFAULT_MAX_FILES_PER_PARTITION,
 ) -> Dict:
     """
     Process a single repository: clone, analyze, cleanup.
@@ -203,7 +227,7 @@ def process_repository(
             return repo
         
         # Run CK analysis
-        if run_ck_analysis(ck_jar, clone_dir, output_dir):
+        if run_ck_analysis(ck_jar, clone_dir, output_dir, jvm_memory, max_files_per_partition):
             repo["ckMetricsGenerated"] = "true"
             print(f"✓ Completed: {repo_name}", file=sys.stderr)
         else:
@@ -280,6 +304,23 @@ def main():
         action="store_true",
         help="Re-analyze repositories even if already processed"
     )
+    parser.add_argument(
+        "--jvm-memory",
+        type=str,
+        default=DEFAULT_JVM_MEMORY,
+        help=f"JVM max heap per CK instance (default: {DEFAULT_JVM_MEMORY}). Example: 4g, 1500m"
+    )
+    parser.add_argument(
+        "--max-files",
+        type=int,
+        default=DEFAULT_MAX_FILES_PER_PARTITION,
+        help=f"CK max files per partition, reduces OOM on large repos (default: {DEFAULT_MAX_FILES_PER_PARTITION}, 0=no limit)"
+    )
+    parser.add_argument(
+        "--skip-failed",
+        action="store_true",
+        help="Skip repositories previously marked as failed (ckMetricsGenerated=false)"
+    )
     
     args = parser.parse_args()
     
@@ -307,10 +348,16 @@ def main():
             repo["ckMetricsGenerated"] = "false"
     
     # Get pending repositories
-    pending_repos = [
-        repo for repo in repos
-        if repo.get("ckMetricsGenerated", "").lower() != "true"
-    ]
+    if args.skip_failed:
+        pending_repos = [
+            repo for repo in repos
+            if repo.get("ckMetricsGenerated", "").lower() not in ("true", "false")
+        ]
+    else:
+        pending_repos = [
+            repo for repo in repos
+            if repo.get("ckMetricsGenerated", "").lower() != "true"
+        ]
     
     if not pending_repos:
         print("No repositories to process", file=sys.stderr)
@@ -322,6 +369,7 @@ def main():
     
     print(f"Processing {len(pending_repos)} repositories with {args.parallel} parallel jobs", file=sys.stderr)
     print(f"Clone method: {'HTTPS' if args.use_http else 'SSH'}", file=sys.stderr)
+    print(f"JVM memory per instance: {args.jvm_memory}  |  max-files-per-partition: {args.max_files}", file=sys.stderr)
     
     # Process repositories in parallel
     processed_repos = []
@@ -333,7 +381,9 @@ def main():
                 ck_jar,
                 args.use_http,
                 temp_dir,
-                data_dir
+                data_dir,
+                args.jvm_memory,
+                args.max_files,
             ): repo for repo in pending_repos
         }
         

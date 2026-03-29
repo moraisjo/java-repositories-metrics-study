@@ -1,0 +1,71 @@
+flowchart TD
+    A([Start]) --> B
+
+    subgraph SETUP["⚙️ Environment Setup"]
+        B[Initialize Git submodule\nsource-code-ck/ck] --> C[Build CK Tool\n./mvnw clean package -DskipTests]
+        C --> D[Configure GITHUB_TOKEN\n.env or env var]
+    end
+
+    D --> E
+
+    subgraph COLLECTION["📦 Phase 1 — Data Collection\n01-fetch-github-data.py"]
+        E{CSV exists with\nenough rows?} -->|Yes, skip| F
+        E -->|No / --force| G[GraphQL Query\nlanguage:Java sort:stars]
+        G --> H[Paginate GitHub API\n10 repos per page]
+        H --> I{hasNextPage &\ncount < 1000?}
+        I -->|Yes| H
+        I -->|No| J[Export repositories.csv\n1000 Java repos]
+        J --> F
+    end
+
+    F --> K
+
+    subgraph CSV_FIELDS["📄 repositories.csv Fields"]
+        direction TB
+        F1[nameWithOwner · url\ncreatedAt · updatedAt · age\nstargazerCount · forkCount\nwatchersCount · releasesCount\nmergedPullRequestsCount\nclosedIssuesCount · totalIssuesCount\nprimaryLanguage · ckMetricsGenerated]
+    end
+
+    F --> F1
+
+    subgraph ANALYSIS["🔬 Phase 2 — CK Metrics Analysis\n02-generate-ck-metrics.py"]
+        K[Load repositories.csv] --> L[Filter pending repos\nskip ckMetricsGenerated=true]
+        L --> M[ThreadPoolExecutor\nparallel=10 jobs]
+        M --> N[Clone repo\n--depth 1\nSSH default / HTTPS optional]
+        N --> O{Clone\nsuccessful?}
+        O -->|No| P[Mark false\nclean up]
+        O -->|Yes| Q[Run CK JAR\njava -jar ck.jar\ntimeout: 20 min]
+        Q --> R{class.csv\ngenerated?}
+        R -->|No| P
+        R -->|Yes| S[Rename → ckMetrics.csv\ndata/ck/owner_repo/]
+        S --> T[Mark ckMetricsGenerated=true]
+        T --> U[Delete cloned repo\n/tmp/ck-analysis/]
+        P --> U
+        U --> V{More repos\npending?}
+        V -->|Yes| M
+    end
+
+    V -->|No| W
+
+    subgraph OUTPUT["📊 Output — CK Metrics per Repo"]
+        W[data/ck/owner_repo/ckMetrics.csv]
+        W --> X[CBO — Coupling Between Objects\nDIT — Depth of Inheritance Tree\nWMC — Weighted Methods per Class\nRFC — Response for a Class\nLCOM — Lack of Cohesion of Methods\nLOC — Lines of Code]
+    end
+
+    X --> Y
+
+    subgraph RQ["🔎 Research Questions — Correlations"]
+        Y[Join GitHub metrics + CK metrics]
+        Y --> RQ1[RQ01: Popularity\nstars · forks · watchers\nvs CBO · WMC · DIT · LCOM]
+        Y --> RQ2[RQ02: Maturity\ncreatedAt · age · releases\nvs CBO · WMC · DIT · LCOM]
+        Y --> RQ3[RQ03: Activity\nmergedPRs · closedIssues\nvs CBO · WMC · DIT · LCOM]
+        Y --> RQ4[RQ04: Size\nLOC · files\nvs CBO · WMC · DIT · LCOM]
+    end
+
+    RQ1 & RQ2 & RQ3 & RQ4 --> Z([Reports / Visualizations\nreports/figures/])
+
+    style SETUP fill:#2d3748,color:#e2e8f0,stroke:#4a5568
+    style COLLECTION fill:#1a365d,color:#e2e8f0,stroke:#2b6cb0
+    style ANALYSIS fill:#1c4532,color:#e2e8f0,stroke:#276749
+    style OUTPUT fill:#3c1a1a,color:#e2e8f0,stroke:#742a2a
+    style RQ fill:#44337a,color:#e2e8f0,stroke:#6b46c1
+    style CSV_FIELDS fill:#2d3748,color:#cbd5e0,stroke:#4a5568
