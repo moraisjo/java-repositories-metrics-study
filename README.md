@@ -241,27 +241,30 @@ As métricas CK são salvas em `data/ck/{owner}_{repo}/ckMetrics.csv` com as seg
 
 ```
 .
-├── .env.example                      # Exemplo de configuração de variáveis de ambiente
-├── .gitignore                        # Arquivos ignorados pelo Git
-├── .gitmodules                       # Configuração de submodules Git
-├── requirements.txt                  # Dependências Python
-├── README.md                         # Este arquivo
-├── data/                             # Dados brutos coletados
-│   ├── repositories.csv              # Dados do GitHub (CSV)
-│   └── ck/                           # Métricas CK por repositório
-│       └── {owner}_{repo}/           # Diretório por repositório
-│           └── ckMetrics.csv         # Métricas CK do repositório
-├── docs/                             # Documentação do projeto
-│   └── LABORATÓRIO 02...pdf          # Especificação do laboratório
-├── reports/                          # Relatórios e visualizações
-│   └── figures/                      # Gráficos gerados (a ser criado)
-├── source-code-ck/                   # Ferramenta CK (submodule)
-│   └── ck/                           # Repositório da ferramenta CK
-│       └── target/                   # JAR compilado da ferramenta
-└── src/                              # Código-fonte
-    ├── 01-fetch-github-data.py       # Script de coleta de repositórios
-    ├── 02-generate-ck-metrics.py     # Script de análise de métricas CK
-    └── github_query.graphql          # Query GraphQL para busca de repositórios
+├── requirements.txt                       # Dependências Python
+├── README.md                              # Este arquivo
+├── data/                                  # Dados brutos coletados
+│   └── ck/                                # Métricas CK por repositório
+│   ├── repositories.csv                   # Dados do GitHub (CSV)
+│   └── summary/                           # Resumos agregados das análises
+├── docs/                                  # Documentação do projeto
+│   ├── 849-ck-analys.png                  # Imagem com análise de métricas CK
+│   ├── decisions.md                       # Decisões de projeto
+│   ├── figures/                           # Figuras e gráficos do estudo
+│   ├── LABORATÓRIO 02 -...                # Especificação do laboratório
+│   ├── metodology.mermaid                 # Diagrama da metodologia
+│   └── report/                            # Relatório final
+├── source-code-ck/                        # Ferramenta CK (submodule)
+│   └── ck/                                # Repositório da ferramenta CK
+└── src/                                   # Código-fonte
+    ├── 01-fetch-github-data.py            # Script de coleta de repositórios
+    ├── 02-generate-ck-metrics.py          # Script de análise de métricas CK
+  ├── 03-analyze-popularity-vs-quality.py  # Script da RQ01 (popularidade vs qualidade)
+  ├── 04-analyze-maturity-vs-quality.py    # Script da RQ02 (maturidade vs qualidade)
+  ├── 05-analyze-activity-vs-quality.py    # Script da RQ03 (atividade vs qualidade)
+  ├── 06-analyze-size-vs-quality.py        # Script da RQ04 (tamanho vs qualidade)
+  ├── github_query.graphql                 # Query GraphQL para busca de repositórios
+  └── __pycache__/
 ```
 
 ---
