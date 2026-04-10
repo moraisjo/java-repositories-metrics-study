@@ -247,15 +247,15 @@ Considerando nível de significância de 5%, apenas o p-valor de Pearson para CB
 
 #### Visualizações — RQ01
 
-![Popularidade vs CBO](docs/report/assets/rq01/rq01_cbo_scatter.png)
+![Popularidade vs CBO](assets/rq01/rq01_cbo_scatter.png)
 
 *Fig. 1: Relação entre popularidade (log10 de estrelas) e CBO. A linha de tendência apresenta leve inclinação negativa, porém com efeito fraco.*
 
-![Popularidade vs DIT](docs/report/assets/rq01/rq01_dit_scatter.png)
+![Popularidade vs DIT](assets/rq01/rq01_dit_scatter.png)
 
 *Fig. 2: Relação entre popularidade e DIT. A linha de tendência está praticamente horizontal, indicando ausência de relação relevante.*
 
-![Popularidade vs LCOM](docs/report/assets/rq01/rq01_lcom_scatter.png)
+![Popularidade vs LCOM](assets/rq01/rq01_lcom_scatter.png)
 
 *Fig. 3: Relação entre popularidade e LCOM. Alta dispersão e outliers; tendência geral fraca.*
 
@@ -264,6 +264,8 @@ Considerando nível de significância de 5%, apenas o p-valor de Pearson para CB
 #### Discussão — RQ01
 
 **Confronto com hipóteses H1, H2, H3:** As três hipóteses previam que repositórios mais populares apresentariam menor acoplamento, menor profundidade de herança e menor falta de coesão. Os dados **não confirmam** essas hipóteses: os coeficientes ficaram muito próximos de zero para as três métricas, e apenas CBO apresentou significância estatística, ainda assim com efeito de magnitude pequena.
+
+> **Hipótese:** esperado = "mais estrelas -> menor CBO/DIT/LCOM"; observado = efeitos praticamente nulos (com CBO apenas levemente negativo); **status = hipóteses rejeitadas**.
 
 Na prática, os resultados sugerem que, nesta amostra, a popularidade medida por estrelas não explica a qualidade estrutural do código Java. Esse resultado pode ser explicado pela diversidade do ecossistema Java: repositórios muito estrelados incluem desde frameworks corporativos complexos (com alto CBO por design arquitetural) até bibliotecas utilitárias altamente coesas, e esse espectro apaga qualquer tendência sistemática.
 
@@ -289,21 +291,23 @@ Considerando nível de significância de 5%:
 
 #### Visualizações — RQ02
 
-![Maturidade vs CBO](docs/report/assets/rq02/rq02_cbo_scatter.png)
+![Maturidade vs CBO](assets/rq02/rq02_cbo_scatter.png)
 
 *Fig. 4: Relação entre maturidade (anos) e CBO. Linha de tendência praticamente horizontal.*
 
-![Maturidade vs DIT](docs/report/assets/rq02/rq02_dit_scatter.png)
+![Maturidade vs DIT](assets/rq02/rq02_dit_scatter.png)
 
 *Fig. 5: Relação entre maturidade e DIT. Leve inclinação positiva, consistente com correlações fracas mas significativas.*
 
-![Maturidade vs LCOM](docs/report/assets/rq02/rq02_lcom_scatter.png)
+![Maturidade vs LCOM](assets/rq02/rq02_lcom_scatter.png)
 
 *Fig. 6: Relação entre maturidade e LCOM. Tendência discretamente positiva, com alta dispersão e outliers.*
 
 #### Discussão — RQ02
 
 **Confronto com hipóteses H4, H5, H6:** As três hipóteses previam que repositórios mais maduros apresentariam menor CBO, DIT e LCOM — fruto de refatorações acumuladas. Os dados **não confirmam** essas hipóteses. Para DIT e LCOM, os sinais observados foram positivos (ou seja, repositórios mais antigos tendem a ter DIT e LCOM ligeiramente maiores), embora com efeito fraco.
+
+> **Hipótese:** esperado = "mais idade -> menor CBO/DIT/LCOM"; observado = CBO nulo e leve aumento de DIT/LCOM com maturidade; **status = hipóteses rejeitadas (sinal oposto em parte dos indicadores)**.
 
 Uma explicação plausível: repositórios mais antigos surgiram em uma época em que herança profunda era mais idiomática em Java (padrões de design como Abstract Factory e Template Method favorecem hierarquias). Além disso, projetos que duram mais tendem a acumular mais código legado, aumentando LCOM em partes não refatoradas.
 
@@ -329,15 +333,15 @@ Considerando nível de significância de 5%:
 
 #### Visualizações — RQ03
 
-![Atividade vs CBO](docs/report/assets/rq03/rq03_cbo_scatter.png)
+![Atividade vs CBO](assets/rq03/rq03_cbo_scatter.png)
 
 *Fig. 7: Relação entre atividade (log10 de releases+1) e CBO. A linha de tendência (vermelha) apresenta inclinação positiva leve, coerente com correlação fraca.*
 
-![Atividade vs DIT](docs/report/assets/rq03/rq03_dit_scatter.png)
+![Atividade vs DIT](assets/rq03/rq03_dit_scatter.png)
 
 *Fig. 8: Relação entre atividade (log10 de releases+1) e DIT. A linha de tendência (vermelha) permanece praticamente horizontal.*
 
-![Atividade vs LCOM](docs/report/assets/rq03/rq03_lcom_scatter.png)
+![Atividade vs LCOM](assets/rq03/rq03_lcom_scatter.png)
 
 *Fig. 9: Relação entre atividade (log10 de releases+1) e LCOM. Tendência positiva discreta, com efeito fraco.*
 
@@ -346,6 +350,8 @@ Considerando nível de significância de 5%:
 #### Discussão — RQ03
 
 **Confronto com hipóteses H7, H8, H9:** As hipóteses previam que repositórios com mais releases apresentariam menor CBO, DIT e LCOM — resultado de ciclos frequentes de revisão e melhoria. Os dados **não confirmam** essas hipóteses. Para CBO, o sinal observado é positivo: repositórios com mais releases tendem a ter CBO ligeiramente maior.
+
+> **Hipótese:** esperado = "mais releases -> menor CBO/DIT/LCOM"; observado = CBO levemente maior e DIT sem relação clara; **status = hipóteses rejeitadas**.
 
 Uma interpretação possível: projetos com muitas releases são frequentemente bibliotecas ou frameworks de ampla adoção, cujo design intencional envolve alto acoplamento entre módulos (ex.: Spring, Hibernate). O número de releases pode refletir popularidade da interface pública, não necessariamente qualidade interna. Para LCOM e DIT, os efeitos são ainda menores e sem padrão consistente.
 
@@ -381,15 +387,15 @@ Considerando nível de significância de 5%:
 
 #### Visualizações — RQ04
 
-![LOC vs CBO](docs/report/assets/rq04/rq04_loc_cbo_scatter.png)
+![LOC vs CBO](assets/rq04/rq04_loc_cbo_scatter.png)
 
 *Fig. 10: Relação entre tamanho em LOC (log10) e CBO. Inclinação positiva leve, coerente com associação fraca.*
 
-![LOC vs DIT](docs/report/assets/rq04/rq04_loc_dit_scatter.png)
+![LOC vs DIT](assets/rq04/rq04_loc_dit_scatter.png)
 
 *Fig. 11: Relação entre LOC e DIT. Linha de tendência praticamente horizontal.*
 
-![LOC vs LCOM](docs/report/assets/rq04/rq04_loc_lcom_scatter.png)
+![LOC vs LCOM](assets/rq04/rq04_loc_lcom_scatter.png)
 
 *Fig. 12: Relação entre LOC e LCOM. Tendência linear fraca; em Spearman há associação monotônica fraca.*
 
@@ -398,6 +404,8 @@ Considerando nível de significância de 5%:
 #### Discussão — RQ04
 
 **Confronto com hipóteses H10, H11, H12:** As hipóteses previam que repositórios maiores (maior LOC) apresentariam maior CBO, DIT e LCOM — pela maior complexidade esperada. Os dados **confirmam parcialmente** H10 (CBO) e H12 (LCOM em Spearman), mas **não confirmam** H11 (DIT permanece sem associação relevante).
+
+> **Hipótese:** esperado = "mais LOC -> maior CBO/DIT/LCOM"; observado = aumento fraco de CBO e LCOM, sem evidência para DIT; **status = parcialmente confirmada**.
 
 A associação positiva entre LOC e CBO é intuitiva: sistemas maiores tendem a ter mais classes interconectadas. Para LCOM, o sinal em Spearman é positivo, mas fraco, sugerindo que classes em sistemas grandes apresentam levemente menor coesão interna. DIT, por outro lado, parece não crescer com o tamanho — a profundidade da hierarquia de herança é uma decisão de design mais independente do volume de código.
 
@@ -433,18 +441,6 @@ LCOM é a métrica com maior variabilidade: o desvio padrão entre repositórios
 
 - **Releases frequentes não garantem qualidade estrutural:** A ausência de correlação negativa entre atividade (releases) e métricas CK sugere que ciclos de entrega rápidos não necessariamente se traduzem em melhoria da qualidade estrutural. Investir em refatoração contínua e revisão de design é tão importante quanto manter cadência de releases.
 
-## 5.2 Sugestões futuras
-
-- **Análise por tipo de projeto:** Separar bibliotecas de aplicações completas poderia revelar padrões de qualidade distintos, dado que frameworks tendem a ter CBO alto por design.
-
-- **Inclusão de outras métricas CK:** Métricas como WMC (Weighted Methods per Class) e RFC (Response for a Class) poderiam complementar a análise de CBO, DIT e LCOM.
-
-- **Análise de tendência temporal:** Em vez de observar o estado atual, investigar como as métricas CK evoluem ao longo do histórico de commits de cada repositório — verificando se refatorações ocorrem em versões maiores.
-
-- **Linhas de comentários:** Garantir a disponibilidade da coluna de comentários no output do CK para testar as hipóteses H13–H15.
-
-- **Ampliação da amostra:** Analisar os 5.000 repositórios Java mais populares para verificar se os efeitos fracos se mantêm em camadas menos visíveis da plataforma.
-
-## 5.3 Resultado conclusivo sucinto
+## 5.2 Resultado conclusivo sucinto
 
 Este estudo analisou os 1.000 repositórios Java mais estrelados do GitHub por meio de métricas CK (CBO, DIT, LCOM) e correlações com características de processo (popularidade, maturidade, atividade e tamanho). Os resultados mostram que, em todas as combinações avaliadas, os coeficientes de correlação foram de **magnitude fraca** (|r| < 0,30). Quando estatisticamente significativos, os efeitos foram consistentemente pequenos, não permitindo afirmar que repositórios mais populares, mais antigos, mais ativos ou maiores apresentam sistematicamente melhor qualidade estrutural em Java. A exceção parcial é o par LOC × CBO, com ρ = 0,291 em Spearman, sugerindo que sistemas maiores tendem a ser um pouco mais acoplados.
