@@ -4,10 +4,12 @@
 
 A RQ01 analisa se repositórios Java mais populares (com mais estrelas no GitHub) tendem a ter melhor qualidade de código.
 
+Conceitos:
+a. CBO:  acoplamento entre classes, 
+b. DIT: profundidade de herança 
+c. LCOM: falta de coesão entre métodos.
+
 Hipóteses informais adotadas antes da análise:
-
-Neste estudo: CBO indica acoplamento entre classes, DIT indica profundidade de herança e LCOM indica falta de coesão entre métodos.
-
 1. H1: Repositórios mais populares tenderiam a ter menor acoplamento (CBO), pois recebem mais revisão da comunidade.
 2. H2: Repositórios mais populares tenderiam a ter menor profundidade de herança (DIT), por priorizarem manutenção mais simples.
 3. H3: Repositórios mais populares tenderiam a ter menor falta de coesão (LCOM), por terem organização interna melhor.
@@ -99,7 +101,7 @@ Resumo das estatísticas (média, mediana e desvio padrão) calculadas por repos
 | LCOM | Falta de coesão entre métodos | median | 960 | 1.460 | 0.000 | 16.209 |
 | LCOM | Falta de coesão entre métodos | std | 951 | 3282.823 | 130.539 | 76753.952 |
 
-### 3.4 Gráficos
+### 3.4 Gráficos (diagramas de dispersão)
 
 ![CBO](assets/rq01/rq01_cbo_scatter.png)
 
