@@ -19,6 +19,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.stats import pearsonr, spearmanr
 
 
 # Use a non-interactive backend so the script runs in terminal/CI.
@@ -109,11 +110,24 @@ def build_dataset(repos: pd.DataFrame, ck_summary: pd.DataFrame) -> pd.DataFrame
 def correlation_row(df: pd.DataFrame, metric_col: str) -> Dict[str, float]:
     sub = df[["stars", metric_col]].dropna()
     if len(sub) < 2:
-        return {"pearson": np.nan, "spearman": np.nan, "n": len(sub)}
+        return {
+            "pearson": np.nan,
+            "pearson_pvalue": np.nan,
+            "spearman": np.nan,
+            "spearman_pvalue": np.nan,
+            "n": len(sub),
+        }
+
+    x = sub["stars"].to_numpy()
+    y = sub[metric_col].to_numpy()
+    pearson_coef, pearson_p = pearsonr(x, y)
+    spearman_coef, spearman_p = spearmanr(x, y)
 
     return {
-        "pearson": sub.corr(method="pearson").iloc[0, 1],
-        "spearman": sub.corr(method="spearman").iloc[0, 1],
+        "pearson": pearson_coef,
+        "pearson_pvalue": pearson_p,
+        "spearman": spearman_coef,
+        "spearman_pvalue": spearman_p,
         "n": len(sub),
     }
 

@@ -45,6 +45,7 @@ O arquivo completo com essa sumarização por repositório está em:
 - Popularidade foi considerada como `stars = stargazerCount`.
 - Para facilitar a visualização, foi usado `log10(stars)` no eixo X dos gráficos.
 - Para medir a relação entre popularidade e qualidade, foram calculadas correlações de Pearson e Spearman entre `stars` e a **mediana por repositório** de cada métrica (`cbo_median`, `dit_median`, `lcom_median`).
+- Também foi calculado o p-valor de cada correlação, para apoiar a interpretação estatística dos resultados.
 
 ## 3. Resultados
 
@@ -55,11 +56,28 @@ O arquivo completo com essa sumarização por repositório está em:
 
 ### 3.2 Correlações (popularidade vs mediana da métrica por repositório)
 
-| Métrica | Pearson | Spearman | n |
-| --- | ---: | ---: | ---: |
-| CBO | -0.1025 | 0.0304 | 960 |
-| DIT | -0.0499 | -0.0336 | 960 |
-| LCOM | -0.0208 | 0.0166 | 960 |
+Pense no p-valor como um “termômetro de coincidência”. Ele responde: “Se não existisse relação nenhuma entre as coisas que estou comparando, qual seria a chance de eu ver um resultado como este só por acaso?”
+
+> p-valor pequeno
+Significa: “seria raro acontecer só por sorte”.
+Então a gente começa a acreditar que pode existir relação de verdade.
+
+> p-valor grande
+Significa: “isso pode acontecer por sorte sem problema”.
+Então não dá para afirmar que existe relação.
+
+
+| Métrica | Pearson | p-valor (Pearson) | Spearman | p-valor (Spearman) | n |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CBO | -0.1025 | 0.0015 | 0.0304 | 0.3471 | 960 |
+| DIT | -0.0499 | 0.1227 | -0.0336 | 0.2983 | 960 |
+| LCOM | -0.0208 | 0.5196 | 0.0166 | 0.6083 | 960 |
+
+Considerando nível de significância de 5% (0,05), apenas o p-valor de Pearson para CBO ficou abaixo desse limite. Mesmo assim, o coeficiente é pequeno em magnitude, indicando efeito fraco.
+
+**ATENÇÃO**
+- p-valor fala de confiança contra o acaso; 
+- coeficiente fala de tamanho da relação.**
 
 Arquivo CSV correspondente:
 
