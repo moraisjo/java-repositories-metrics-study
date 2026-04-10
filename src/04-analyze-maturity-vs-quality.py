@@ -27,6 +27,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 CK_METRICS = ["cbo", "dit", "lcom"]
+RNG = np.random.default_rng(42)
 
 
 def _resolve_path(project_root: Path, value: str) -> Path:
@@ -106,6 +107,22 @@ def build_dataset(repos: pd.DataFrame, ck_summary: pd.DataFrame) -> pd.DataFrame
     return data
 
 
+def select_analysis_cohort(data: pd.DataFrame, target_repos: int) -> pd.DataFrame:
+    required_cols = [f"{metric}_median" for metric in CK_METRICS]
+    cohort = (
+        data.dropna(subset=required_cols)
+        .sort_values("stargazerCount", ascending=False)
+        .head(target_repos)
+        .copy()
+    )
+    if len(cohort) < target_repos:
+        raise RuntimeError(
+            f"Only {len(cohort)} repositories with complete CK metrics; "
+            f"{target_repos} required."
+        )
+    return cohort
+
+
 def correlation_row(df: pd.DataFrame, metric_col: str) -> Dict[str, float]:
     sub = df[["maturity_years", metric_col]].dropna()
     if len(sub) < 2:
@@ -147,18 +164,36 @@ def save_scatter_plots(data: pd.DataFrame, fig_dir: Path) -> Iterable[Path]:
 
     for metric in CK_METRICS:
         y_col = f"{metric}_median"
-        ax = sns.regplot(
-            data=data,
-            x="maturity_years",
-            y=y_col,
-            scatter_kws={"s": 12, "alpha": 0.35},
-            line_kws={"color": "red"},
+        x = pd.to_numeric(data["maturity_years"], errors="coerce")
+        y = pd.to_numeric(data[y_col], errors="coerce")
+        jitter = y.to_numpy()
+        if y.nunique(dropna=True) <= 25:
+            jitter = jitter + RNG.uniform(-0.08, 0.08, size=len(jitter))
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        hb = ax.hexbin(
+            x,
+            jitter,
+            gridsize=42,
+            mincnt=1,
+            bins="log",
+            cmap="viridis",
         )
+        fig.colorbar(hb, ax=ax, label="densidade (log10)")
+
+        sns.regplot(
+            x=x,
+            y=y,
+            scatter=False,
+            lowess=True,
+            line_kws={"color": "red", "linewidth": 2},
+            ax=ax,
+        )
+
         ax.set_title(f"Maturidade (idade em anos) x {metric.upper()} (mediana)")
         ax.set_xlabel("Idade do repositorio (anos)")
         ax.set_ylabel(metric.upper())
 
-        fig = ax.get_figure()
         fig_path = fig_dir / f"rq02_{metric}_scatter.png"
         fig.savefig(fig_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
@@ -271,6 +306,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip report markdown/assets export.",
     )
+    parser.add_argument(
+        "--target-repos",
+        type=int,
+        default=1000,
+        help="Number of repositories with complete metrics to include in analysis.",
+    )
     return parser.parse_args()
 
 
@@ -292,9 +333,12 @@ def main() -> None:
 
     repos = load_repositories(repo_csv)
     ck_summary = build_ck_summary(repos, ck_dir)
-    ck_summary_path = summary_dir / "rq02_resumo_por_repositorio.csv"
-    ck_summary.to_csv(ck_summary_path, index=False)
     data = build_dataset(repos, ck_summary)
+    data = select_analysis_cohort(data, args.target_repos)
+
+    ck_summary_cols = ["nameWithOwner", "classes_n", *[f"{m}_{s}" for m in CK_METRICS for s in ("mean", "median", "std")]]
+    ck_summary_path = summary_dir / "rq02_resumo_por_repositorio.csv"
+    data[ck_summary_cols].to_csv(ck_summary_path, index=False)
 
     dataset_path = summary_dir / "rq02_dataset.csv"
     data.to_csv(dataset_path, index=False)

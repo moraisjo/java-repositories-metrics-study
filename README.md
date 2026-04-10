@@ -155,6 +155,7 @@ python src/01-fetch-github-data.py --force
 O script irá:
 - Coletar dados dos N repositórios Java com mais estrelas
 - Salvar os resultados em formato CSV no caminho especificado
+- Preservar colunas extras já existentes no CSV (ex.: `ckMetricsGenerated`) para os repositórios que permanecerem na lista
 - Pular a coleta se o arquivo já existir com dados suficientes (use `--force` para ignorar)
 
 **Dados coletados:**
@@ -185,8 +186,11 @@ python src/02-generate-ck-metrics.py --limit 10
 # Especificar número de repositórios em paralelo
 python src/02-generate-ck-metrics.py --parallel 5
 
-# Usar HTTPS ao invés de SSH para clonar repositórios
-python src/02-generate-ck-metrics.py --use-http
+# Definir protocolo de clone (auto = HTTPS e fallback para SSH)
+python src/02-generate-ck-metrics.py --clone-protocol auto
+
+# Aumentar tolerância para repositórios grandes
+python src/02-generate-ck-metrics.py --ck-timeout 0 --parallel 1
 
 # Forçar re-análise de repositórios já processados
 python src/02-generate-ck-metrics.py --force
@@ -199,21 +203,25 @@ python src/02-generate-ck-metrics.py --input data/my_repos.csv
 - `--input FILE`: Arquivo CSV com repositórios (padrão: data/repositories.csv)
 - `--limit N`: Número de repositórios a analisar por execução
 - `--parallel N`: Número de análises paralelas (padrão: 3)
-- `--use-http`: Usar HTTPS para clonar (padrão: SSH)
+- `--clone-protocol {auto,http,ssh}`: Prioridade de protocolo de clone (padrão: auto)
 - `--force`: Re-analisar repositórios já processados
+- `--skip-failed`: Ignorar repositórios já marcados como `ckMetricsGenerated=false`
+- `--clone-timeout N`: Timeout do `git clone` em segundos
+- `--clone-retries N`: Retries por protocolo de clone
+- `--ck-timeout N`: Timeout do CK em segundos (`0` desabilita timeout)
 
 O script irá:
 - Ler o CSV gerado pelo script anterior
 - Adicionar a coluna `ckMetricsGenerated` (se não existir)
 - Processar repositórios em paralelo (3 por vez, ou conforme especificado)
-- Clonar cada repositório usando SSH (ou HTTPS com `--use-http`)
+- Clonar cada repositório usando o protocolo configurado (`auto/http/ssh`)
 - Executar análise CK em cada repositório
 - Exportar métricas para `data/ck/{repoName}/ckMetrics.csv`
 - Marcar como concluído no CSV original
 - Limpar repositórios clonados após análise
 
 **Requisitos:**
-- SSH configurado com GitHub (ou use `--use-http`)
+- HTTPS disponível (SSH opcional, com fallback automático em `--clone-protocol auto`)
 - Java 11+ instalado
 - Ferramenta CK compilada (veja seção de instalação)
 
@@ -231,9 +239,20 @@ As métricas CK são salvas em `data/ck/{owner}_{repo}/ckMetrics.csv` com as seg
 - `loc`: Lines of Code
 - E outras métricas...
 
-### 3. Geração de Visualizações
+### 3. Geração de Visualizações e Correlações
 
-*(A ser implementado)*
+```bash
+python src/03-analyze-popularity-vs-quality.py --target-repos 1000
+python src/04-analyze-maturity-vs-quality.py --target-repos 1000
+python src/05-analyze-activity-vs-quality.py --target-repos 1000
+python src/06-analyze-size-vs-quality.py --target-repos 1000
+```
+
+Os scripts:
+- Selecionam os **1.000 repositórios com métricas CK completas** (quando houver base suficiente)
+- Exportam datasets/correlações em `data/summary/`
+- Geram visualizações com densidade + tendência suave em `docs/figures/`
+- Copiam assets para `docs/report/assets/`
 
 ---
 
@@ -345,7 +364,7 @@ pip install -r requirements.txt
    - [Guia de configuração de SSH](https://docs.github.com/pt/authentication/connecting-to-github-with-ssh)
 2. Use HTTPS ao invés de SSH:
    ```bash
-   python src/02-generate-ck-metrics.py --use-http
+   python src/02-generate-ck-metrics.py --clone-protocol http
    ```
 3. Teste sua conexão SSH:
    ```bash

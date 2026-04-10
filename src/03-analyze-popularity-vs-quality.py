@@ -107,6 +107,22 @@ def build_dataset(repos: pd.DataFrame, ck_summary: pd.DataFrame) -> pd.DataFrame
     return data
 
 
+def select_analysis_cohort(data: pd.DataFrame, target_repos: int) -> pd.DataFrame:
+    required_cols = [f"{metric}_median" for metric in CK_METRICS]
+    cohort = (
+        data.dropna(subset=required_cols)
+        .sort_values("stargazerCount", ascending=False)
+        .head(target_repos)
+        .copy()
+    )
+    if len(cohort) < target_repos:
+        raise RuntimeError(
+            f"Only {len(cohort)} repositories with complete CK metrics; "
+            f"{target_repos} required."
+        )
+    return cohort
+
+
 def correlation_row(df: pd.DataFrame, metric_col: str) -> Dict[str, float]:
     sub = df[["stars", metric_col]].dropna()
     if len(sub) < 2:
@@ -148,18 +164,22 @@ def save_scatter_plots(data: pd.DataFrame, fig_dir: Path) -> Iterable[Path]:
 
     for metric in CK_METRICS:
         y_col = f"{metric}_median"
-        ax = sns.regplot(
-            data=data,
+        plot_df = data[["stars_log10", y_col]].dropna()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.regplot(
+            data=plot_df,
             x="stars_log10",
             y=y_col,
-            scatter_kws={"s": 12, "alpha": 0.35},
-            line_kws={"color": "red"},
+            scatter_kws={"s": 14, "alpha": 0.30},
+            lowess=True,
+            line_kws={"color": "red", "linewidth": 2},
+            ax=ax,
         )
-        ax.set_title(f"Popularidade (log10 stars) x {metric.upper()} (mediana)")
-        ax.set_xlabel("log10(stars)")
+
+        ax.set_title(f"Popularidade (log10(stars)) x {metric.upper()} (mediana)")
+        ax.set_xlabel("log10(stars)  [3=1k, 4=10k, 5=100k]")
         ax.set_ylabel(metric.upper())
 
-        fig = ax.get_figure()
         fig_path = fig_dir / f"rq01_{metric}_scatter.png"
         fig.savefig(fig_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
@@ -267,6 +287,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip report markdown/assets export.",
     )
+    parser.add_argument(
+        "--target-repos",
+        type=int,
+        default=1000,
+        help="Number of repositories with complete metrics to include in analysis.",
+    )
     return parser.parse_args()
 
 
@@ -289,6 +315,7 @@ def main() -> None:
     repos = load_repositories(repo_csv)
     ck_summary = build_ck_summary(repos, ck_dir)
     data = build_dataset(repos, ck_summary)
+    data = select_analysis_cohort(data, args.target_repos)
 
     dataset_path = summary_dir / "rq01_dataset.csv"
     data.to_csv(dataset_path, index=False)

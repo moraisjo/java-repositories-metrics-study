@@ -27,6 +27,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 CK_METRICS = ["cbo", "dit", "lcom"]
+RNG = np.random.default_rng(42)
 COMMENT_CANDIDATE_COLS = [
     "commentLines",
     "comment_lines",
@@ -144,6 +145,22 @@ def build_dataset(repos: pd.DataFrame, ck_summary: pd.DataFrame) -> pd.DataFrame
     return data
 
 
+def select_analysis_cohort(data: pd.DataFrame, target_repos: int) -> pd.DataFrame:
+    required_cols = ["total_loc", *[f"{metric}_median" for metric in CK_METRICS]]
+    cohort = (
+        data.dropna(subset=required_cols)
+        .sort_values("stargazerCount", ascending=False)
+        .head(target_repos)
+        .copy()
+    )
+    if len(cohort) < target_repos:
+        raise RuntimeError(
+            f"Only {len(cohort)} repositories with complete CK metrics; "
+            f"{target_repos} required."
+        )
+    return cohort
+
+
 def correlation_row(df: pd.DataFrame, size_col: str, metric_col: str) -> Dict[str, float]:
     sub = df[[size_col, metric_col]].dropna()
     if len(sub) < 2:
@@ -203,18 +220,45 @@ def save_scatter_plots(data: pd.DataFrame, fig_dir: Path) -> Iterable[Path]:
 
         for metric in CK_METRICS:
             y_col = f"{metric}_median"
-            ax = sns.regplot(
-                data=data,
-                x=x_col,
-                y=y_col,
-                scatter_kws={"s": 12, "alpha": 0.35},
-                line_kws={"color": "red"},
+            x = pd.to_numeric(data[x_col], errors="coerce")
+            y = pd.to_numeric(data[y_col], errors="coerce")
+            mask = x.notna() & y.notna()
+            if not mask.any():
+                continue
+
+            x_plot = x[mask]
+            y_plot = y[mask]
+            jitter = y_plot.to_numpy()
+            if y_plot.nunique(dropna=True) <= 25:
+                jitter = jitter + RNG.uniform(-0.08, 0.08, size=len(jitter))
+
+            fig, ax = plt.subplots(figsize=(8, 5))
+            hb = ax.hexbin(
+                x_plot,
+                jitter,
+                gridsize=42,
+                mincnt=1,
+                bins="log",
+                cmap="viridis",
             )
+            fig.colorbar(hb, ax=ax, label="densidade (log10)")
+
+            sns.regplot(
+                x=x_plot,
+                y=y_plot,
+                scatter=False,
+                lowess=True,
+                line_kws={"color": "red", "linewidth": 2},
+                ax=ax,
+            )
+
             ax.set_title(f"Tamanho ({x_label}, log10 + 1) x {metric.upper()} (mediana)")
-            ax.set_xlabel(f"log10({x_label} + 1)")
+            if x_label == "LOC":
+                ax.set_xlabel("log10(LOC + 1)  [3=1k, 4=10k, 5=100k]")
+            else:
+                ax.set_xlabel(f"log10({x_label} + 1)")
             ax.set_ylabel(metric.upper())
 
-            fig = ax.get_figure()
             fig_path = fig_dir / f"{file_prefix}_{metric}_scatter.png"
             fig.savefig(fig_path, dpi=150, bbox_inches="tight")
             plt.close(fig)
@@ -327,6 +371,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip report markdown/assets export.",
     )
+    parser.add_argument(
+        "--target-repos",
+        type=int,
+        default=1000,
+        help="Number of repositories with complete metrics to include in analysis.",
+    )
     return parser.parse_args()
 
 
@@ -348,9 +398,18 @@ def main() -> None:
 
     repos = load_repositories(repo_csv)
     ck_summary = build_ck_summary(repos, ck_dir)
-    ck_summary_path = summary_dir / "rq04_resumo_por_repositorio.csv"
-    ck_summary.to_csv(ck_summary_path, index=False)
     data = build_dataset(repos, ck_summary)
+    data = select_analysis_cohort(data, args.target_repos)
+
+    ck_summary_cols = [
+        "nameWithOwner",
+        "classes_n",
+        "total_loc",
+        "total_comment_lines",
+        *[f"{m}_{s}" for m in CK_METRICS for s in ("mean", "median", "std")],
+    ]
+    ck_summary_path = summary_dir / "rq04_resumo_por_repositorio.csv"
+    data[ck_summary_cols].to_csv(ck_summary_path, index=False)
 
     dataset_path = summary_dir / "rq04_dataset.csv"
     data.to_csv(dataset_path, index=False)

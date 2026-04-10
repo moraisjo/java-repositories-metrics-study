@@ -115,6 +115,22 @@ def build_dataset(repos: pd.DataFrame, ck_summary: pd.DataFrame) -> pd.DataFrame
     return data
 
 
+def select_analysis_cohort(data: pd.DataFrame, target_repos: int) -> pd.DataFrame:
+    required_cols = [f"{metric}_median" for metric in CK_METRICS]
+    cohort = (
+        data.dropna(subset=required_cols)
+        .sort_values("stargazerCount", ascending=False)
+        .head(target_repos)
+        .copy()
+    )
+    if len(cohort) < target_repos:
+        raise RuntimeError(
+            f"Only {len(cohort)} repositories with complete CK metrics; "
+            f"{target_repos} required."
+        )
+    return cohort
+
+
 def correlation_row(df: pd.DataFrame, metric_col: str) -> Dict[str, float]:
     sub = df[["releases_count", metric_col]].dropna()
     if len(sub) < 2:
@@ -156,18 +172,37 @@ def save_scatter_plots(data: pd.DataFrame, fig_dir: Path) -> Iterable[Path]:
 
     for metric in CK_METRICS:
         y_col = f"{metric}_median"
-        ax = sns.regplot(
-            data=data,
-            x="activity_releases",
-            y=y_col,
-            scatter_kws={"s": 12, "alpha": 0.35},
-            line_kws={"color": "red"},
+        plot_df = data[["activity_releases", y_col]].dropna().copy()
+        if plot_df.empty:
+            continue
+
+        x = pd.to_numeric(plot_df["activity_releases"], errors="coerce")
+        y = pd.to_numeric(plot_df[y_col], errors="coerce")
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        hb = ax.hexbin(
+            x,
+            y,
+            gridsize=42,
+            mincnt=1,
+            bins="log",
+            cmap="viridis",
         )
+        fig.colorbar(hb, ax=ax, label="densidade (log10)")
+
+        sns.regplot(
+            x=x,
+            y=y,
+            scatter=False,
+            lowess=True,
+            line_kws={"color": "red", "linewidth": 2},
+            ax=ax,
+        )
+
         ax.set_title(f"Atividade (log10(releases + 1)) x {metric.upper()} (mediana)")
-        ax.set_xlabel("log10(releases + 1)")
+        ax.set_xlabel("log10(releases + 1)  [1≈10, 2≈100, 3≈1000]")
         ax.set_ylabel(metric.upper())
 
-        fig = ax.get_figure()
         fig_path = fig_dir / f"rq03_{metric}_scatter.png"
         fig.savefig(fig_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
@@ -280,6 +315,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip report markdown/assets export.",
     )
+    parser.add_argument(
+        "--target-repos",
+        type=int,
+        default=1000,
+        help="Number of repositories with complete metrics to include in analysis.",
+    )
     return parser.parse_args()
 
 
@@ -301,9 +342,12 @@ def main() -> None:
 
     repos = load_repositories(repo_csv)
     ck_summary = build_ck_summary(repos, ck_dir)
-    ck_summary_path = summary_dir / "rq03_resumo_por_repositorio.csv"
-    ck_summary.to_csv(ck_summary_path, index=False)
     data = build_dataset(repos, ck_summary)
+    data = select_analysis_cohort(data, args.target_repos)
+
+    ck_summary_cols = ["nameWithOwner", "classes_n", *[f"{m}_{s}" for m in CK_METRICS for s in ("mean", "median", "std")]]
+    ck_summary_path = summary_dir / "rq03_resumo_por_repositorio.csv"
+    data[ck_summary_cols].to_csv(ck_summary_path, index=False)
 
     dataset_path = summary_dir / "rq03_dataset.csv"
     data.to_csv(dataset_path, index=False)
