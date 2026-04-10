@@ -2,13 +2,15 @@
 
 ## 1. Introdução e Hipóteses Informais
 
-A RQ01 investiga se repositórios Java mais populares (com mais estrelas no GitHub) tendem a apresentar melhores características de qualidade de código.
+A RQ01 analisa se repositórios Java mais populares (com mais estrelas no GitHub) tendem a ter melhor qualidade de código.
 
 Hipóteses informais adotadas antes da análise:
 
-1. Repositórios mais populares tenderiam a ter menor acoplamento (CBO), por receberem maior escrutínio da comunidade.
-2. Repositórios mais populares tenderiam a manter menor profundidade de herança (DIT), por priorizarem simplicidade de manutenção.
-3. Repositórios mais populares tenderiam a ter menor falta de coesão (LCOM), por terem código mais organizado.
+Neste estudo: CBO indica acoplamento entre classes, DIT indica profundidade de herança e LCOM indica falta de coesão entre métodos.
+
+1. H1: Repositórios mais populares tenderiam a ter menor acoplamento (CBO), pois recebem mais revisão da comunidade.
+2. H2: Repositórios mais populares tenderiam a ter menor profundidade de herança (DIT), por priorizarem manutenção mais simples.
+3. H3: Repositórios mais populares tenderiam a ter menor falta de coesão (LCOM), por terem organização interna melhor.
 
 ## 2. Metodologia
 
@@ -18,7 +20,7 @@ Hipóteses informais adotadas antes da análise:
 - Fonte de qualidade: métricas CK por classe (`cbo`, `dit`, `lcom`).
 - Unidade analítica da RQ01: repositório.
 
-Foram considerados apenas os repositórios com `ckMetricsGenerated=true`.
+Foram usados apenas os repositórios com `ckMetricsGenerated=true`.
 
 ### 2.2 Sumarização por repositório
 
@@ -28,7 +30,7 @@ Para cada repositório, as métricas CK em nível de classe foram agregadas por:
 - mediana;
 - desvio padrão amostral.
 
-Isto foi feito separadamente para CBO, DIT e LCOM. Assim, cada repositório passou a ter, por métrica, os campos:
+Esse cálculo foi feito separadamente para CBO, DIT e LCOM. Assim, cada repositório ficou com os campos:
 
 - `<metrica>_mean`
 - `<metrica>_median`
@@ -40,9 +42,9 @@ O arquivo completo com essa sumarização por repositório está em:
 
 ### 2.3 Análise estatística
 
-- Popularidade foi tratada como `stars = stargazerCount`.
-- Para visualização, também foi usado `log10(stars)` no eixo X dos gráficos.
-- Para medir associação entre popularidade e qualidade, foram calculadas correlações de Pearson e Spearman entre `stars` e a **mediana por repositório** de cada métrica (`cbo_median`, `dit_median`, `lcom_median`).
+- Popularidade foi considerada como `stars = stargazerCount`.
+- Para facilitar a visualização, foi usado `log10(stars)` no eixo X dos gráficos.
+- Para medir a relação entre popularidade e qualidade, foram calculadas correlações de Pearson e Spearman entre `stars` e a **mediana por repositório** de cada métrica (`cbo_median`, `dit_median`, `lcom_median`).
 
 ## 3. Resultados
 
@@ -65,53 +67,59 @@ Arquivo CSV correspondente:
 
 ### 3.3 Medidas centrais das estatísticas por repositório
 
-Resumo da distribuição das estatísticas (média, mediana, desvio padrão) calculadas por repositório:
+Resumo das estatísticas (média, mediana e desvio padrão) calculadas por repositório:
 
-| Métrica | Estatística por repositório | n | Média (entre repositórios) | Mediana (entre repositórios) | Desvio padrão (entre repositórios) |
-| --- | --- | ---: | ---: | ---: | ---: |
-| CBO | mean | 960 | 5.339 | 5.276 | 1.872 |
-| CBO | median | 960 | 3.535 | 3.000 | 1.727 |
-| CBO | std | 951 | 6.247 | 6.009 | 2.630 |
-| DIT | mean | 960 | 1.451 | 1.388 | 0.343 |
-| DIT | median | 960 | 1.090 | 1.000 | 0.302 |
-| DIT | std | 951 | 1.058 | 0.769 | 2.178 |
-| LCOM | mean | 960 | 116.138 | 23.793 | 1765.278 |
-| LCOM | median | 960 | 1.460 | 0.000 | 16.209 |
-| LCOM | std | 951 | 3282.823 | 130.539 | 76753.952 |
+| Métrica | Descrição métrica | Estatística por repositório | n | Média (entre repositórios) | Mediana (entre repositórios) | Desvio padrão (entre repositórios) |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| CBO | Acoplamento entre classes | mean | 960 | 5.339 | 5.276 | 1.872 |
+| CBO | Acoplamento entre classes | median | 960 | 3.535 | 3.000 | 1.727 |
+| CBO | Acoplamento entre classes | std | 951 | 6.247 | 6.009 | 2.630 |
+| DIT | Profundidade de herança | mean | 960 | 1.451 | 1.388 | 0.343 |
+| DIT | Profundidade de herança | median | 960 | 1.090 | 1.000 | 0.302 |
+| DIT | Profundidade de herança | std | 951 | 1.058 | 0.769 | 2.178 |
+| LCOM | Falta de coesão entre métodos | mean | 960 | 116.138 | 23.793 | 1765.278 |
+| LCOM | Falta de coesão entre métodos | median | 960 | 1.460 | 0.000 | 16.209 |
+| LCOM | Falta de coesão entre métodos | std | 951 | 3282.823 | 130.539 | 76753.952 |
 
 ### 3.4 Gráficos
 
 ![CBO](assets/rq01/rq01_cbo_scatter.png)
 
+Fig. 1: Relação entre popularidade e acoplamento entre classes (CBO). Cada ponto representa um repositório. No eixo X, valores maiores indicam mais estrelas (em escala log10). No eixo Y, valores maiores indicam maior acoplamento entre classes. A linha vermelha resume a tendência geral e aparece levemente descendente, sugerindo que repositórios mais populares podem ter CBO um pouco menor, mas com efeito fraco.
+
 ![DIT](assets/rq01/rq01_dit_scatter.png)
 
+Fig. 2: Relação entre popularidade e profundidade de herança (DIT). Cada ponto é um repositório; à direita estão os mais populares e, acima, os com maior profundidade de herança. A linha vermelha está quase horizontal, indicando que o aumento de popularidade não acompanha uma mudança relevante em DIT. Em termos práticos, o gráfico sugere relação fraca entre essas variáveis.
+
 ![LCOM](assets/rq01/rq01_lcom_scatter.png)
+
+Fig. 3: Relação entre popularidade e falta de coesão entre métodos (LCOM). Cada ponto representa um repositório; quanto mais alto, maior a falta de coesão. A linha vermelha quase horizontal indica tendência geral fraca. Também há pontos muito acima da nuvem principal (outliers), mostrando que alguns repositórios têm valores de LCOM muito elevados em comparação com a maioria.
 
 ## 4. Discussão (Hipóteses vs Resultados)
 
 ### 4.1 Hipótese 1 (popularidade vs CBO)
 
-Esperava-se uma relação negativa perceptível (mais estrelas, menor CBO). O resultado mostra coeficientes muito próximos de zero (Pearson = -0.1025; Spearman = 0.0304), indicando associação linear e monotônica muito fracas. Há sinal linear levemente negativo, mas sem efeito prático forte.
+Era esperado que mais estrelas viessem com menor CBO. Porém, os coeficientes ficaram muito próximos de zero (Pearson = -0.1025; Spearman = 0.0304). Isso indica relação fraca. Existe um sinal linear levemente negativo, mas sem diferença relevante na prática.
 
 ### 4.2 Hipótese 2 (popularidade vs DIT)
 
-A expectativa de menor DIT em repositórios mais populares também não se confirmou de forma clara. Os coeficientes foram baixos e próximos de zero (Pearson = -0.0499; Spearman = -0.0336), sugerindo ausência de relação consistente.
+A expectativa de menor DIT em repositórios mais populares também não se confirmou com clareza. Os coeficientes foram baixos e próximos de zero (Pearson = -0.0499; Spearman = -0.0336). Isso sugere ausência de relação consistente.
 
 ### 4.3 Hipótese 3 (popularidade vs LCOM)
 
-Para LCOM, os coeficientes também ficaram próximos de zero (Pearson = -0.0208; Spearman = 0.0166). Além disso, os resultados descritivos indicam alta assimetria e presença de outliers em LCOM, o que reforça cautela na interpretação de tendência global.
+Para LCOM, os coeficientes também ficaram próximos de zero (Pearson = -0.0208; Spearman = 0.0166). Além disso, os resultados descritivos mostram alta assimetria e presença de outliers em LCOM. Por isso, a interpretação da tendência geral deve ser feita com cautela.
 
 ### 4.4 Síntese da RQ01
 
-Com base nos dados obtidos, a popularidade (estrelas) não apresentou relação forte com as métricas de qualidade analisadas (CBO, DIT, LCOM) quando observadas por meio das medianas por repositório.
+Com base nos dados, a popularidade (estrelas) não mostrou relação forte com as métricas analisadas (CBO, DIT e LCOM), considerando as medianas por repositório.
 
-Em termos práticos, os resultados sugerem que, nesta amostra, maior popularidade não implica necessariamente melhor (ou pior) qualidade estrutural nessas três dimensões específicas.
+Na prática, os resultados sugerem que, nesta amostra, mais popularidade não significa necessariamente melhor (nem pior) qualidade estrutural nessas três dimensões.
 
 ## 5. Limitações e Ameaças à Validade (RQ01)
 
 1. Apenas três métricas CK foram consideradas na RQ01 (CBO, DIT, LCOM).
-2. Estrelas no GitHub são uma proxy imperfeita de popularidade e podem refletir fatores externos (marketing, domínio, histórico do projeto).
-3. Há dados faltantes em parte dos repositórios para algumas estatísticas (especialmente desvios padrão), tipicamente por baixa quantidade de classes válidas.
+2. Estrelas no GitHub são uma medida aproximada de popularidade e podem refletir fatores externos (marketing, domínio e histórico do projeto).
+3. Há dados faltantes em parte dos repositórios para algumas estatísticas (principalmente desvios padrão), geralmente por baixa quantidade de classes válidas.
 4. Correlação não implica causalidade.
 
 ## 6. Artefatos gerados para a RQ01
