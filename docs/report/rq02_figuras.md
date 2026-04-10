@@ -1,0 +1,20 @@
+# RQ02 - Graficos e Tabela de Correlacao
+
+## Correlacoes
+
+| metric | pearson | pearson_pvalue | spearman | spearman_pvalue | n |
+| --- | --- | --- | --- | --- | --- |
+| cbo | 0.009913308019577825 | 0.7590260761523775 | 0.022910042452413897 | 0.4783183130517855 | 960 |
+| dit | 0.08713031336637811 | 0.006907827344794059 | 0.09593564451595488 | 0.002925591954042939 | 960 |
+| lcom | 0.016103456206843635 | 0.6182517528451393 | 0.08521766225457951 | 0.008248149882079574 | 960 |
+
+## Graficos
+
+### CBO
+![CBO](assets/rq02/rq02_cbo_scatter.png)
+
+### DIT
+![DIT](assets/rq02/rq02_dit_scatter.png)
+
+### LCOM
+![LCOM](assets/rq02/rq02_lcom_scatter.png)
